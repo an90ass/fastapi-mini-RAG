@@ -4,6 +4,8 @@ from dependencies.SettingsDependency import get_app_settings
 from controllers import DataController
 from models import ResponseSignal
 import aiofiles
+import logging
+logger = logging.getLogger("uvicorn.error")
 data_router = APIRouter(
     prefix="/api/v1/data",
     tags=["data"],
@@ -33,6 +35,7 @@ async def upload_file(project_id:str, file : UploadFile = None, app_settings=Dep
                 await out_file.write(chunk)  # Write the chunk to the destination file
         
     except Exception as e:
+        logger.error(f"An error occurred while saving the file: {str(e)}")
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
