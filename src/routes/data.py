@@ -26,12 +26,20 @@ async def upload_file(project_id:str, file : UploadFile = None, app_settings=Dep
         original_filename=file.filename,
         project_id=project_id,
     )
+    try:
 
-    async with aiofiles.open(file_path, 'wb') as out_file:
-        while chunk := await file.read(app_settings.FILE_DEFAULT_CHUNK_SIZE):  # Read the file in chunks
-            await out_file.write(chunk)  # Write the chunk to the destination file
-    
-    
+        async with aiofiles.open(file_path, 'wb') as out_file:
+            while chunk := await file.read(app_settings.FILE_DEFAULT_CHUNK_SIZE):  # Read the file in chunks
+                await out_file.write(chunk)  # Write the chunk to the destination file
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "status": False,
+                "message": ResponseSignal.FileUploadFailed.value,
+            },
+        )
     result_signal = ResponseSignal.FileUploadSuccess.value
 
     return JSONResponse(
