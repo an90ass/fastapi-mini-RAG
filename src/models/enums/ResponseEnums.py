@@ -9,7 +9,11 @@ class ResponseSignal(Enum):
     FileUploadSuccess = "file_upload_success"
     FileUploadFailed = "file_upload_failed"
 
-
+    # For processing
+    FileProcessedSuccess = "file_processed_success"
+    FileProcessingFailed = "file_processing_failed"
+    FileNotFound = "file_not_found"
+    
     SUCCESS = "success"
     ERROR = "error"
     WARNING = "warning"
