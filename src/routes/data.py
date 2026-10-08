@@ -24,7 +24,7 @@ async def upload_file(project_id:str, file : UploadFile = None, app_settings=Dep
                 "message": result_signal,
                           },
         )
-    file_path = data_controller.generate_unique_filename(
+    file_path,file_id = data_controller.generate_unique_filepath(
         original_filename=file.filename,
         project_id=project_id,
     )
@@ -50,4 +50,5 @@ async def upload_file(project_id:str, file : UploadFile = None, app_settings=Dep
         content={
             "status": is_valid,
             "message": result_signal,
+            "file_id": file_id,
    } )
