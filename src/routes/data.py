@@ -7,6 +7,8 @@ from schemes import ProcessRequest
 import aiofiles
 import logging
 from models.project_model import ProjectModel
+from models.chunk_model import ChunkModel
+from models.db_schemes import DataChunk
 logger = logging.getLogger("uvicorn.error")
 data_router = APIRouter(
     prefix="/api/v1/data",
@@ -60,10 +62,16 @@ async def upload_file(request: Request,project_id:str, file : UploadFile = None,
    } )
 
 @data_router.post("/process/{project_id}")
-async def process_file(request: ProcessRequest, project_id: str):
-    file_id = request.file_id
-    chunk_size = request.chunk_size 
-    overlap_size = request.overlap_size 
+async def process_file(request: Request,process_request: ProcessRequest, project_id: str):
+    file_id = process_request.file_id
+    chunk_size = process_request.chunk_size 
+    overlap_size = process_request.overlap_size
+    do_reset = process_request.do_reset
+
+    project_model = ProjectModel(db_client=request.app.state.db_client)
+    project = await project_model.get_or_create_project(project_id=project_id)
+
+
     process_controller = ProcessController(project_id=project_id)
     file_content = process_controller.get_file_content(file_id=file_id)
 
@@ -81,19 +89,30 @@ async def process_file(request: ProcessRequest, project_id: str):
                 "message": ResponseSignal.FileProcessingFailed.value,
             },
         )
-    chunks_response = [
-        {
-            "page_content": chunk.page_content,
-            "metadata": chunk.metadata,
-        }
-        for chunk in file_chunks
+
+    file_chunks_records = [
+        DataChunk(
+            chunk_text= chunk.page_content,
+            chunk_metadata=chunk.metadata,
+            chunk_order=i+1,
+            chunk_project_id=project.id
+        )
+
+          for i,chunk in enumerate(file_chunks)
     ]
+
+    chunk_model = ChunkModel(db_client=request.app.state.db_client)
+ 
+    if do_reset:
+        await chunk_model.delete_chunks_by_project_id(project_id=project.id)
+    inserted_chunks_count = await chunk_model.insert_many_chunks(chunks=file_chunks_records)
+   
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={
             "status": True,
             "message": ResponseSignal.FileProcessedSuccess.value,
-            "data": chunks_response,
+            "inserted_chunks_count": inserted_chunks_count,
         },
     )   
 
