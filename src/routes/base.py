@@ -1,9 +1,9 @@
 from fastapi import APIRouter ,Depends
 
-from dependencies.SettingsDependency import get_app_settings
+from dependencies.settings_dependency import get_app_settings
 
 base_router = APIRouter(
-    prefix="/api/v1/base",
+    # prefix="/api/v1/base",
     tags=["base"],
     responses={404: {"description": "Not found"}},
 
