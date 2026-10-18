@@ -51,7 +51,7 @@ async def upload_file(request: Request,project_id:str, file : UploadFile = None,
         )
     result_signal = ResponseSignal.FileUploadSuccess.value
     # create project after file upload
-    project_model = ProjectModel(db_client=request.app.state.db_client)
+    project_model = await ProjectModel.create_instance(db_client=request.app.state.db_client)
     project = await project_model.get_or_create_project(project_id=project_id)
     return JSONResponse(
         status_code=status.HTTP_200_OK,
@@ -68,7 +68,7 @@ async def process_file(request: Request,process_request: ProcessRequest, project
     overlap_size = process_request.overlap_size
     do_reset = process_request.do_reset
 
-    project_model = ProjectModel(db_client=request.app.state.db_client)
+    project_model = await ProjectModel.create_instance(db_client=request.app.state.db_client)
     project = await project_model.get_or_create_project(project_id=project_id)
 
 
@@ -101,7 +101,7 @@ async def process_file(request: Request,process_request: ProcessRequest, project
           for i,chunk in enumerate(file_chunks)
     ]
 
-    chunk_model = ChunkModel(db_client=request.app.state.db_client)
+    chunk_model = await ChunkModel.create_instance(db_client=request.app.state.db_client)
  
     if do_reset:
         await chunk_model.delete_chunks_by_project_id(project_id=project.id)
