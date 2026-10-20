@@ -31,6 +31,7 @@ class ProcessController(BaseController):
         file_id: str,
         file_path: str = None,
     ):
+        
         file_extension = self.get_file_extension(file_id)
 
         if file_path is None:
