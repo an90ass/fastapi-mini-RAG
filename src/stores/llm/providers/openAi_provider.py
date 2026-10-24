@@ -23,7 +23,7 @@ class OpenAiProvider(LLMInterface):
 
         self.client = OpenAI(
             api_key=self.api_key,
-            api_base=self.api_url
+            base_url=self.api_url if self.api_url else None
             )
         self.logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ class OpenAiProvider(LLMInterface):
         self.embedding_model_id = model_id
         self.embedding_size = embedding_size
 
-    def generate_text(self, prompt:str, chat_history:list = [], max_output_tokens:int = None, temperature:float = None):
+    def generate_text(self, prompt:str, chat_history:list = None, max_output_tokens:int = None, temperature:float = None):
         if not self.client:
                      self.logger.error("OpenAI client is not initialized")
                      return None
@@ -43,12 +43,13 @@ class OpenAiProvider(LLMInterface):
             return None
         max_output_tokens = max_output_tokens if max_output_tokens else self.defult_generation_max_output_tokens
         temperature = temperature if temperature else self.defult_generation_temperature
+        chat_history = list(chat_history) if chat_history else []
 
         chat_history.append(
-             self.construct_prompt(prompt, OpenAIEnums.ROLE_USER.value)
+             self.construct_prompt(prompt, OpenAIEnums.USER.value)
              )
         
-        response = self.client.chat.completion.create(
+        response = self.client.chat.completions.create(
             model = self.generation_model_id,
             messages = chat_history,
             max_tokens = max_output_tokens,
@@ -72,7 +73,7 @@ class OpenAiProvider(LLMInterface):
             model=self.embedding_model_id,
             input=text,            
         )
-        if not response or not response.data or len(response.data) == 0 or not response.datadata[0].embedding:
+        if not response or not response.data or len(response.data) == 0 or not response.data[0].embedding:
             self.logger.error("Embedding response is empty")
             return None
         return response.data[0].embedding
