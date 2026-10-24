@@ -8,9 +8,12 @@ class VectorDbProviderFactory:
 
     def create(self, provider: str):
         if provider == VectorDbEnums.QDRANT.value:
-            db_path = self.base_controller.get_database_path(self.config.VECTOR_DB_NAME)
+            db_path = self.base_controller.get_database_path(self.config.VECTOR_DB_PATH)
             return QdrantDbProvider(
                 db_path = db_path, 
                 distance_method = self.config.VECTOR_DB_DISTANCE_METHOD)
 
-        return None
+        raise ValueError(
+            f"Unsupported VECTOR_DB_BACKEND '{provider}'. "
+            f"Supported: {[e.value for e in VectorDbEnums]}"
+        )
