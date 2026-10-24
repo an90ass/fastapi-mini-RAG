@@ -16,6 +16,11 @@ class LLMInterface(ABC):
     @abstractmethod
     def embed_text(self, text:str, document_type:str = None):
         pass
+
+    def embed_texts(self, texts:list, document_type:str = None):
+        # default fallback: one call per text; providers should override with a real batch call
+        return [self.embed_text(text=t, document_type=document_type) for t in texts]
+
     @abstractmethod
     def construct_prompt(self, prompt:str, role:str):
         pass

@@ -4,6 +4,7 @@ import logging
 from ..VectorDbEnums import DistanceMethodEnums
 
 from qdrant_client import QdrantClient, models
+import uuid
 class QdrantDbProvider(VectorDbInterface):
     def __init__(self, db_path: str, distance_method: str):
         self.client = None
@@ -55,7 +56,7 @@ class QdrantDbProvider(VectorDbInterface):
             collection_name=collection_name,
             records=[
                 models.Record(
-                    id = record_id,
+                    id = record_id if record_id is not None else str(uuid.uuid4()),
                     vector = vector,
                     payload = {
                         "text": text,
@@ -75,7 +76,7 @@ class QdrantDbProvider(VectorDbInterface):
         if metadata is None:
             metadata = [None] * len(texts)
         if record_ids is None:
-            record_ids = [None] * len(texts)
+            record_ids = list(range(0,len(texts)))
 
         for i in range(0, len(texts), batch_size):
             batch_end = i + batch_size
@@ -83,9 +84,11 @@ class QdrantDbProvider(VectorDbInterface):
             batch_texts = texts[i:batch_end]
             batch_vectors = vectors[i:batch_end]
             batch_metadata = metadata[i:batch_end]
+            batch_record_ids = record_ids[i:batch_end]
 
             batch_records = [
                 models.Record(
+                    id = batch_record_ids[x],
                     vector= batch_vectors[x],
                     payload = {
                         "text": batch_texts[x],

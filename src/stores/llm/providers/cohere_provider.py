@@ -1,7 +1,9 @@
 from ..LLMInterface import LLMInterface
 from ..LLMEnums import CohereEnums,DocumnetTypeEnum
 import cohere 
+from cohere.errors import TooManyRequestsError
 import logging
+import time
 class CohereProvider(LLMInterface):
      def __init__(
                 self,
@@ -60,9 +62,9 @@ class CohereProvider(LLMInterface):
                self.logger.error("Embedding model is not set")
                return None
            
-           input_type = CohereEnums.DOCUMENT
-           if document_type == DocumnetTypeEnum.QUERY:
-               input_type = CohereEnums.QUERY
+           input_type = CohereEnums.DOCUMENT.value
+           if document_type == DocumnetTypeEnum.QUERY.value:
+               input_type = CohereEnums.QUERY.value
                 
 
            response = self.client.embed(
@@ -71,10 +73,50 @@ class CohereProvider(LLMInterface):
                  input_type=input_type,
                  embedding_types=['float']
                  )
-           if response is None or response.embeddings is None or len(response.embeddings) == 0 or response.embeddings.float_ is None:
+           if response is None or response.embeddings is None or not response.embeddings.float_:
                self.logger.error("Embedding response is empty")
                return None
-           return response.embeddings.float[0]
+           return response.embeddings.float_[0]
+
+     def embed_texts(self, texts: list, document_type: str = None, batch_size: int = 96, max_retries: int = 5):
+           if not self.client:
+                self.logger.error("Cohere client is not initialized")
+                return None
+           if not self.embedding_model_id:
+               self.logger.error("Embedding model is not set")
+               return None
+
+           input_type = CohereEnums.DOCUMENT.value
+           if document_type == DocumnetTypeEnum.QUERY.value:
+               input_type = CohereEnums.QUERY.value
+
+           all_vectors = []
+           for i in range(0, len(texts), batch_size):
+               batch = [self.process_text(t) for t in texts[i:i + batch_size]]
+
+               for attempt in range(max_retries):
+                   try:
+                       response = self.client.embed(
+                           model=self.embedding_model_id,
+                           texts=batch,
+                           input_type=input_type,
+                           embedding_types=['float']
+                       )
+                       break
+                   except TooManyRequestsError:
+                       wait = min(60, 2 ** attempt * 5)
+                       self.logger.warning(f"Cohere rate limit hit, retrying in {wait}s (attempt {attempt + 1}/{max_retries})")
+                       time.sleep(wait)
+               else:
+                   self.logger.error("Cohere rate limit: max retries exceeded")
+                   return None
+
+               if response is None or response.embeddings is None or not response.embeddings.float_:
+                   self.logger.error("Embedding response is empty")
+                   return None
+               all_vectors.extend(response.embeddings.float_)
+
+           return all_vectors
 
 
      
